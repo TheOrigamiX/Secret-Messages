@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crypto Messenger (AES) - Fixed</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+      body {
+        font-family: "Helvetica Neue", Arial, sans-serif;
+        background-color: #f1f5f9;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+      }
+      .container {
+        background: white;
+        max-width: 600px;
+        width: 100%;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+          0 2px 4px -2px rgb(0 0 0 / 0.1);
+      }
+      .header {
+        background: linear-gradient(135deg, #2c3e50, #3498db);
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        color: white;
+        margin-bottom: 20px;
+      }
+      .header h2 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: 1px;
+      }
+      .header p {
+        margin: 5px 0 0 0;
+        font-size: 13px;
+        color: #ecf0f1;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        font-weight: bold;
+        color: #2c3e50;
+        display: block;
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
+      select,
+      input,
+      textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-size: 14px;
+      }
+      textarea {
+        height: 100px;
+        resize: vertical;
+      }
+
+      .key-row {
+        display: flex;
+        gap: 10px;
+      }
+
+      button {
+        cursor: pointer;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 13px;
+        transition: background 0.2s;
+      }
+      .btn-purple {
+        background-color: #8e44ad;
+        color: white;
+      }
+      .btn-purple:hover {
+        background-color: #732d91;
+      }
+      .btn-red {
+        background-color: #ef4444;
+        color: white;
+      }
+      .btn-red:hover {
+        background-color: #dc2626;
+      }
+      .btn-action {
+        margin-top: 5px;
+        background-color: #64748b;
+        color: white;
+      }
+      .btn-action:hover {
+        background-color: #475569;
+      }
+
+      .sender-box {
+        background-color: #ebfbee;
+        border: 1px solid #b7ebc6;
+      }
+      .receiver-box {
+        background-color: #e6f7ff;
+        border: 1px solid #91d5ff;
+      }
+
+      .box-title {
+        font-weight: bold;
+        font-size: 14px;
+        margin-top: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .text-green {
+        color: #27ae60;
+      }
+      .text-blue {
+        color: #2980b9;
+      }
+
+      hr {
+        border: 0;
+        border-top: 1px dashed #cbd5e1;
+        margin: 20px 0;
+      }
+      .error-msg {
+        color: #e74c3c;
+        font-weight: bold;
+        font-size: 13px;
+        margin-top: 5px;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>🚀 CRYPTO MESSENGER (AES)</h2>
+        <p>เวอร์ชันเว็บแอป - พิมพ์ปุ๊บเปลี่ยนปั๊บแบบ Real-time ของจริง</p>
+      </div>
+
+      <div class="form-group">
+        <label>🎯 ประเภทคีย์:</label>
+        <select id="keyType" onchange="handleKeyTypeChange()">
+          <option value="password">🔑 กำหนดรหัสผ่านเอง (จำง่าย)</option>
+          <option value="auto">🎲 ให้ระบบสุ่มคีย์ความปลอดภัยสูง</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>🔑 รหัส / คีย์:</label>
+        <div class="key-row">
+          <input
+            type="text"
+            id="keyInput"
+            placeholder="พิมพ์รหัสผ่านของคุณที่นี่เพื่อเริ่มใช้งาน..."
+            oninput="updateOnKeyChange()"
+          />
+          <button
+            id="btnRandom"
+            class="btn-purple"
+            onclick="generateRandomKey()"
+            style="display: none; white-space: nowrap"
+          >
+            🎲 สุ่มคีย์ใหม่
+          </button>
+          <button
+            class="btn-red"
+            onclick="clearAll()"
+            style="white-space: nowrap"
+          >
+            🧹 ล้างทั้งหมด
+          </button>
+        </div>
+      </div>
+
+      <hr />
+
+      <div class="box-title text-green">
+        <span>🟢 ฝั่งผู้ส่ง (พิมพ์ข้อความธรรมดา):</span>
+        <button class="btn-action" onclick="copyText('plainText')">
+          📋 คัดลอก
+        </button>
+      </div>
+      <textarea
+        id="plainText"
+        class="sender-box"
+        placeholder="พิมพ์ข้อความปกติที่นี่ รหัสมั่วๆ จะเด้งในกล่องล่างทันทีแบบ Real-time..."
+        oninput="processEncrypt()"
+      ></textarea>
+
+      <div class="box-title text-blue">
+        <span>🔵 ฝั่งผู้รับ (วางข้อความมั่ว):</span>
+        <button class="btn-action" onclick="copyText('cipherText')">
+          📋 คัดลอก
+        </button>
+      </div>
+      <textarea
+        id="cipherText"
+        class="receiver-box"
+        placeholder="วางข้อความมั่วๆ ที่นี่ ข้อความจริงจะเด้งในกล่องบนทันทีแบบ Real-time..."
+        oninput="processDecrypt()"
+      ></textarea>
+
+      <div id="errorMsg" class="error-msg">
+        ⚠️ คีย์ไม่ตรง หรือข้อความมั่วไม่สมบูรณ์ กำลังรอข้อมูลถูกต้อง...
+      </div>
+    </div>
+
+    <script>
+      // ฟังก์ชันจัดการประเภทกีย์
+      function handleKeyTypeChange() {
+        const keyType = document.getElementById("keyType").value;
+        const keyInput = document.getElementById("keyInput");
+        const btnRandom = document.getElementById("btnRandom");
+
+        if (keyType === "auto") {
+          btnRandom.style.display = "block";
+          generateRandomKey();
+        } else {
+          btnRandom.style.display = "none";
+          keyInput.value = "";
+          keyInput.placeholder = "พิมพ์รหัสผ่านของคุณที่นี่เพื่อเริ่มใช้งาน...";
+        }
+        clearTextBoxes();
+      }
+
+      // สุ่มคีย์อัตโนมัติ
+      function generateRandomKey() {
+        const randomValues = new Uint32Array(4);
+        window.crypto.getRandomValues(randomValues);
+        const hexKey = Array.from(randomValues, (val) =>
+          val.toString(16).padStart(8, "0")
+        ).join("");
+        document.getElementById("keyInput").value = hexKey;
+        processEncrypt(); // เข้ารหัสใหม่ทันทีหลังได้คีย์ใหม่
+      }
+
+      // การเข้ารหัส (Encrypt) - ทำงานเรียบลื่นทันทีขณะพิมพ์
+      function processEncrypt() {
+        const key = document.getElementById("keyInput").value.trim();
+        const plainText = document.getElementById("plainText").value;
+        const cipherArea = document.getElementById("cipherText");
+        const errorMsg = document.getElementById("errorMsg");
+
+        if (!key || !plainText) {
+          cipherArea.value = "";
+          errorMsg.style.display = "none";
+          return;
+        }
+
+        try {
+          const encrypted = CryptoJS.AES.encrypt(plainText, key).toString();
+          cipherArea.value = encrypted;
+          errorMsg.style.display = "none";
+        } catch (e) {
+          cipherArea.value = "";
+        }
+      }
+
+      // การถอดรหัส (Decrypt) - ทำงานเรียบลื่นทันทีเมื่อวางข้อมูล
+      function processDecrypt() {
+        const key = document.getElementById("keyInput").value.trim();
+        const cipherText = document.getElementById("cipherText").value.trim();
+        const plainArea = document.getElementById("plainText");
+        const errorMsg = document.getElementById("errorMsg");
+
+        if (!key || !cipherText) {
+          plainArea.value = "";
+          errorMsg.style.display = "none";
+          return;
+        }
+
+        try {
+          const decrypted = CryptoJS.AES.decrypt(cipherText, key);
+          const plainResult = decrypted.toString(CryptoJS.enc.Utf8);
+
+          if (plainResult) {
+            plainArea.value = plainResult;
+            errorMsg.style.display = "none";
+          } else {
+            throw new Error("Decryption failed");
+          }
+        } catch (e) {
+          plainArea.value = "";
+          errorMsg.style.display = "block"; // แสดงเตือนถ้ากุญแจไม่ตรง/ข้อมูลขาด
+        }
+      }
+
+      // ฟังก์ชันรันซ้ำอัตโนมัติหากผู้ใช้แก้ไขกุญแจขณะมีข้อความค้างอยู่
+      function updateOnKeyChange() {
+        if (document.getElementById("plainText").value) {
+          processEncrypt();
+        } else if (document.getElementById("cipherText").value) {
+          processDecrypt();
+        }
+      }
+
+      // ระบบปุ่มคัดลอกลงคลิปบอร์ด
+      function copyText(elementId) {
+        const textArea = document.getElementById(elementId);
+        if (!textArea.value) return;
+
+        navigator.clipboard.writeText(textArea.value).then(() => {
+          alert("📋 คัดลอกข้อความลงคลิปบอร์ดสำเร็จแล้ว!");
+        });
+      }
+
+      function clearTextBoxes() {
+        document.getElementById("plainText").value = "";
+        document.getElementById("cipherText").value = "";
+        document.getElementById("errorMsg").style.display = "none";
+      }
+
+      function clearAll() {
+        clearTextBoxes();
+        if (document.getElementById("keyType").value === "password") {
+          document.getElementById("keyInput").value = "";
+        } else {
+          generateRandomKey();
+        }
+      }
+    </script>
+  </body>
+</html>
